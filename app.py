@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 from data import get_rations_data
 
 def main():
@@ -11,14 +12,11 @@ def main():
         st.image("logo.png", width=150)
     with col2:
         st.title("Rations Optimizer - First Strike Ration Menus 2012")
-        st.subheader("Maximize Calories While Minimizing Weight for Optimal Field Nutrition")
+        st.subheader("Filter available MREs to Maximize Calories While Minimizing Weight for Optimal Field Energy")
     st.markdown("---")
     df = get_rations_data()
     
     st.sidebar.title("Filters")    
-    # Type Filter
-    types = sorted(df["Type"].unique())
-    selected_types = st.sidebar.multiselect("Type of Item", types, default=types)
 
     # Calories Filter
     min_calories, max_calories = int(df["Calories"].min()), int(df["Calories"].max())
@@ -27,6 +25,9 @@ def main():
     # Grams Filter
     min_grams, max_grams = int(df["Grams"].min()), int(df["Grams"].max())
     selected_grams = st.sidebar.slider("Grams", min_grams, max_grams, (min_grams, max_grams))
+    # Type Filter
+    types = sorted(df["Type"].unique())
+    selected_types = st.sidebar.multiselect("Type of Item", types, default=types)
 
     # About section in sidebar (at bottom)
     with st.sidebar.expander("About App"):
@@ -48,6 +49,10 @@ def main():
         - *Weight in Grams*: Physical weight considerations for transport
         
         Use the filters to explore different scenarios and find the optimal combination of nutrition and portability for your specific needs.
+        
+        ---
+        
+        **Sponsored by Eric Boehlke, https://truevis.com**
         """)
 
     # Filtering dataframe
@@ -58,6 +63,18 @@ def main():
         (df["Grams"] >= selected_grams[0]) &
         (df["Grams"] <= selected_grams[1])
     ]
+
+    st.header("Weight in Grams vs. Calories")
+    if not df_filtered.empty:
+        fig = px.scatter(df_filtered, 
+                        x="Grams", 
+                        y="Calories", 
+                        color="Type",
+                        hover_data={"Item": True, "Menu": False, "Grams": True, "Calories": True, "Type": False},
+                        hover_name="Item",
+                        title="Weight in Grams vs. Calories")
+        fig.update_layout(height=500)
+        st.plotly_chart(fig, use_container_width=True)
 
     col1, col2 = st.columns(2)
 
@@ -70,10 +87,6 @@ def main():
         st.header("Item's Weight in Grams")
         if not df_filtered.empty:
             st.bar_chart(df_filtered.set_index("Item")["Grams"])
-
-    st.header("Weight in Grams vs. Calories")
-    if not df_filtered.empty:
-        st.scatter_chart(df_filtered, x="Grams", y="Calories", color="Type")
 
     st.header("Calories per Gram")
     if not df_filtered.empty:
